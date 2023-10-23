@@ -14,6 +14,7 @@ const useAudioRecording = () => {
     null
   );
   const [inProgress, setInProgress] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
   const audioSamples = useRef<number[]>([]);
@@ -36,13 +37,14 @@ const useAudioRecording = () => {
           const float = getMeasurementFromExpoMetering(meter);
           audioSamples.current.push(float);
         },
-        500
+        50
       );
       recordingRef.current = recording;
       setInProgress(true);
       console.log("Recording started");
     } catch (err) {
       console.error("Failed to start recording", err);
+      setError(JSON.stringify(err));
     }
   }
 
@@ -77,6 +79,7 @@ const useAudioRecording = () => {
       } catch (e) {
         console.warn("Error deleting file.");
         console.error(e);
+        setError(JSON.stringify(e));
       }
       recordingRef.current = null;
       setInProgress(false);
@@ -85,7 +88,7 @@ const useAudioRecording = () => {
 
   const takeSample = useCallback(async () => {
     await startRecording();
-    await wait(4000);
+    await wait(1000);
     await stopRecording();
   }, [recordingRef.current]);
 
@@ -107,6 +110,7 @@ const useAudioRecording = () => {
     stopRecording,
     takeSample,
     inProgress,
+    error,
   };
 };
 

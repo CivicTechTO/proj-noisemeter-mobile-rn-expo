@@ -7,12 +7,21 @@ import {
   View,
 } from "react-native";
 import useAudioRecording from "./src/hooks/useAudioRecording";
+import { useState } from "react";
 
 export default function App() {
-  const { currentAudioReading, hasAudioPermissions, takeSample, inProgress } =
-    useAudioRecording();
+  const [list, setList] = useState<number[]>([]);
+  const {
+    error,
+    currentAudioReading,
+    hasAudioPermissions,
+    takeSample,
+    inProgress,
+  } = useAudioRecording();
 
   const buttonDisabled = !hasAudioPermissions || inProgress;
+  // const inProgress = false;
+  // const buttonDisabled = false;
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Audio Meter App</Text>
@@ -20,13 +29,21 @@ export default function App() {
         <Text style={styles.dbReading}>
           {currentAudioReading ? currentAudioReading.toFixed(2) + "dB" : ""}
         </Text>
+        // <Text style={styles.dbReading}>{list.join(",")}</Text>
       )}
       {inProgress && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
         </View>
       )}
-      <TouchableOpacity onPress={takeSample} disabled={buttonDisabled}>
+      <TouchableOpacity
+        // onPress={() => {
+        //   const newList = [...list, list.length];
+        //   setList(newList);
+        // }}
+        onPressOut={takeSample}
+        disabled={buttonDisabled}
+      >
         <View
           style={[
             styles.button,
@@ -40,6 +57,7 @@ export default function App() {
           </Text>
         </View>
       </TouchableOpacity>
+      {error && <Text style={[styles.title, { fontSize: 16 }]}>{error}</Text>}
       <StatusBar style="auto" />
     </View>
   );
