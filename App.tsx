@@ -7,57 +7,67 @@ import {
   View,
 } from "react-native";
 import useAudioRecording from "./src/hooks/useAudioRecording";
-import { useState } from "react";
+import useFileSystemCheck from "./src/hooks/useFileSystemCheck";
 
 export default function App() {
-  const [list, setList] = useState<number[]>([]);
+  useFileSystemCheck();
   const {
     error,
-    currentAudioReading,
+    readingCache,
+    currentReading,
     hasAudioPermissions,
-    takeSample,
-    inProgress,
+    startRecording,
+    stopRecording,
+    isRecording,
+    numberOfReadings,
   } = useAudioRecording();
 
-  const buttonDisabled = !hasAudioPermissions || inProgress;
-  // const inProgress = false;
-  // const buttonDisabled = false;
+  // const buttonDisabled = !hasAudioPermissions || isRecording;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Audio Meter App</Text>
-      {!inProgress && (
-        <Text style={styles.dbReading}>
-          {currentAudioReading ? currentAudioReading.toFixed(2) + "dB" : ""}
+      <View style={styles.resultsContainer}>
+        <Text style={styles.title}>Audio Meter App</Text>
+        <Text style={[styles.dbReading, { fontSize: 16 }]}>
+          {numberOfReadings} samples taken
         </Text>
-        // <Text style={styles.dbReading}>{list.join(",")}</Text>
-      )}
-      {inProgress && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
-        </View>
-      )}
+        {!isRecording && (
+          <Text style={styles.dbReading}>
+            {currentReading?.db ? currentReading.db.toFixed(2) + "dB" : ""}
+          </Text>
+        )}
+        {!isRecording && (
+          <Text style={[styles.dbReading, { fontSize: 16 }]}>
+            {currentReading?.meter
+              ? "Meter: " + currentReading.meter.toFixed(2)
+              : ""}
+          </Text>
+        )}
+        {!isRecording && (
+          <Text style={[styles.dbReading, { fontSize: 16 }]}>
+            {currentReading?.float
+              ? "Float: " + currentReading.float.toFixed(2)
+              : ""}
+          </Text>
+        )}
+        {isRecording && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" />
+          </View>
+        )}
+      </View>
       <TouchableOpacity
-        // onPress={() => {
-        //   const newList = [...list, list.length];
-        //   setList(newList);
-        // }}
-        onPressOut={takeSample}
-        disabled={buttonDisabled}
+        onPressOut={isRecording ? stopRecording : startRecording}
       >
-        <View
-          style={[
-            styles.button,
-            buttonDisabled && { backgroundColor: "#666666" },
-          ]}
-        >
-          <Text
-            style={[styles.buttonText, buttonDisabled && { color: "#888888" }]}
-          >
-            {!inProgress ? "TAKE SAMPLE" : "READING..."}
+        <View style={[styles.button]}>
+          <Text style={[styles.buttonText]}>
+            {!isRecording ? "TAKE SAMPLE" : "READING..."}
           </Text>
         </View>
       </TouchableOpacity>
       {error && <Text style={[styles.title, { fontSize: 16 }]}>{error}</Text>}
+
+      {/* <Text style={[styles.title, { fontSize: 16 }]}>{JSON.stringify()}</Text> */}
       <StatusBar style="auto" />
     </View>
   );
@@ -69,6 +79,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#121212",
     alignItems: "center",
     justifyContent: "center",
+  },
+  resultsContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 300,
   },
   title: {
     color: "#f7f7f7",
