@@ -67,7 +67,9 @@ export default function App() {
       </TouchableOpacity>
       {error && <Text style={[styles.title, { fontSize: 16 }]}>{error}</Text>}
 
-      {/* <Text style={[styles.title, { fontSize: 16 }]}>{JSON.stringify()}</Text> */}
+      <Text style={[styles.title, { fontSize: 16 }]}>
+        {JSON.stringify(readingCache)}
+      </Text>
       <StatusBar style="auto" />
     </View>
   );

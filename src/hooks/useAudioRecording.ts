@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Audio } from "expo-av";
 import type { RecordingStatus } from "expo-av/build/Audio";
 import * as FileSystem from "expo-file-system";
-import { useAtom } from "jotai/react";
+// import { useAtom } from "jotai/react";
 
 import {
   getDbSplFromAudioMeasurement,
   getMeasurementFromExpoMetering,
   wait,
 } from "../utils";
-import { readingsCacheAtom } from "../atoms";
+// import { readingsCacheAtom } from "../atoms";
 import usePrevious from "./usePrevious";
 
 export type Reading = {
@@ -21,28 +21,24 @@ export type Reading = {
 const SAMPLE_LENGTH_MS = 2000;
 
 const useAudioRecording = () => {
-  const [readingCache, setReadingCache] = useAtom(readingsCacheAtom);
-  const numberOfReadings = readingCache.length;
+  // const [readingCache, setReadingCache] = useAtom(readingsCacheAtom);
+  const readingCache = useRef<Reading[]>([]);
+  const numberOfReadings = readingCache.current.length;
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isTakingSample, setIsTakingSample] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
   const prevIsTakingSample = usePrevious(isTakingSample);
-  const audioSamples = useRef<number[]>([]);
   const meterSamples = useRef<number[]>([]);
 
   async function startSampling() {
     try {
-      audioSamples.current = [];
       console.log("Starting sample..");
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.LOW_QUALITY,
         (status: RecordingStatus) => {
           const meter = status.metering ?? 0;
-          const float = getMeasurementFromExpoMetering(meter);
-          audioSamples.current.push(float);
-
           meterSamples.current.push(meter);
         },
         50
@@ -58,9 +54,7 @@ const useAudioRecording = () => {
 
   async function stopSampling() {
     console.log("Stopping sample..");
-    console.log(recordingRef.current);
     if (recordingRef.current !== null) {
-      // console.log(recordingRef?.current);
       await recordingRef.current.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -69,10 +63,11 @@ const useAudioRecording = () => {
       console.log("Recording stopped and stored at", uri);
 
       const float =
-        audioSamples.current.reduce(
-          (acc: number, curr: number) => acc + curr,
+        meterSamples.current.reduce(
+          (acc: number, curr: number) =>
+            acc + getMeasurementFromExpoMetering(curr),
           0
-        ) / audioSamples.current.length;
+        ) / meterSamples.current.length;
       const meter =
         meterSamples.current.reduce(
           (acc: number, curr: number) => acc + curr,
@@ -80,7 +75,6 @@ const useAudioRecording = () => {
         ) / meterSamples.current.length;
       const db = getDbSplFromAudioMeasurement(float);
       console.log(`Average db: ${db.toFixed(1)}dB (SPL)`);
-      audioSamples.current = [];
 
       try {
         if (uri !== null) {
@@ -149,7 +143,9 @@ const useAudioRecording = () => {
     console.log(reading);
     if (!!reading) {
       // setCurrentReading(reading)
-      setReadingCache([...readingCache, reading]);
+      console.log({ readingCache, reading });
+      // setReadingCache([...readingCache, reading]);
+      readingCache.current.push(reading);
     }
   };
 
@@ -186,13 +182,13 @@ const useAudioRecording = () => {
   }, [permissionResponse, requestPermission]);
 
   const currentReading = useMemo<Reading | null>(() => {
-    if (!readingCache?.length) return null;
-    return readingCache.pop() as Reading;
+    if (!readingCache.current.length) return null;
+    return readingCache.current.pop() as Reading;
   }, [readingCache]);
 
   return {
     currentReading,
-    readingCache,
+    readingCache: readingCache.current,
     hasAudioPermissions: !!permissionResponse?.granted,
     permissionResponse,
     requestPermission,
